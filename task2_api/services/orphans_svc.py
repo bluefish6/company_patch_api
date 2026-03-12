@@ -2,8 +2,8 @@ from collections import defaultdict
 
 from django.db import transaction
 
-from task2_api.models import IdentityFile, TaxInfo
-from task2_api.services.changelog import ChangeType, create_changelog
+from task2_api.models import ChangeType, IdentityFile, TaxInfo
+from task2_api.services.changelog_svc import create_changelog
 
 
 def get_potential_orphan_pids(obj):
@@ -39,9 +39,7 @@ def cleanup_potential_orphans(potential_orphan_pids):
 
 
 def cleanup_orphaned_identity_file(identity_file_pid: str):
-    """Removes identity file if it's not used anymore"""
     with transaction.atomic():
-        # select for update used to prevent race condition if two requests partially deassociate the same identity file
         identity_file_obj = (
             IdentityFile.objects.select_for_update()
             .filter(pid=identity_file_pid)
@@ -54,19 +52,20 @@ def cleanup_orphaned_identity_file(identity_file_pid: str):
             create_changelog(
                 ChangeType.REMOVED,
                 identity_file_obj,
+                old_data=identity_file_obj.to_dict(),
             )
             identity_file_obj.delete()
 
 
 def cleanup_orphaned_tax_info(tax_info_pid: str):
-    """Removes tax info if it's not used anymore"""
     with transaction.atomic():
-        # select for update used to prevent race condition if two requests partially deassociate the same tax info
         tax_info_obj = (
             TaxInfo.objects.select_for_update().filter(pid=tax_info_pid).first()
         )
         if tax_info_obj and not (
             tax_info_obj.companies.exists() or tax_info_obj.directors.exists()
         ):
-            create_changelog(ChangeType.REMOVED, tax_info_obj)
+            create_changelog(
+                ChangeType.REMOVED, tax_info_obj, old_data=tax_info_obj.to_dict()
+            )
             tax_info_obj.delete()

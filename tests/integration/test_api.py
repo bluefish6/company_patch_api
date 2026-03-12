@@ -12,7 +12,6 @@ from task2_api.models import (
 )
 from task2_api.serializers import (
     CompanySerializer,
-    DirectorSerializer,
 )
 from tests.factories import (
     CompanyFactory,
@@ -57,10 +56,12 @@ class TestCompanyPatch:
             with_taxinfo=[],
         )
         director_pid = director.pid
+        director_serialized = director.to_dict()
         shareholder = ShareholderFactory(
             company=company, with_identity_files=[shared_identity_file]
         )
         shareholder_pid = shareholder.pid
+        shareholder_serialized = shareholder.to_dict()
 
         url = reverse("company-detail", kwargs={"pid": company.pid})
 
@@ -106,19 +107,19 @@ class TestCompanyPatch:
                 "Director",
                 "removed",
                 director_pid,
-                {"old": None, "new": None},
+                {"old": director_serialized, "new": None},
             ),
             (
                 "IdentityFile",
                 "removed",
                 shared_identityfile_pid,
-                {"old": None, "new": None},
+                {"old": {"pid": shared_identityfile_pid}, "new": None},
             ),
             (
                 "Shareholder",
                 "removed",
                 shareholder_pid,
-                {"old": None, "new": None},
+                {"old": shareholder_serialized, "new": None},
             ),
         ]
 
@@ -128,7 +129,10 @@ class TestCompanyPatch:
         director = DirectorFactory(company=company, with_taxinfo=[shared_tax_info])
 
         tax_info_pid = shared_tax_info.pid
+        tax_info_serialized = shared_tax_info.to_dict()
         director_pid = director.pid
+        director_serialized = director.to_dict()
+
         url = reverse("company-detail", kwargs={"pid": company.pid})
 
         api_client.patch(url, {"taxinfo": []}, format="json")
@@ -156,13 +160,13 @@ class TestCompanyPatch:
                 "Director",
                 "removed",
                 director_pid,
-                {"old": None, "new": None},
+                {"old": director_serialized, "new": None},
             ),
             (
                 "TaxInfo",
                 "removed",
                 tax_info_pid,
-                {"old": None, "new": None},
+                {"old": tax_info_serialized, "new": None},
             ),
         ]
 
@@ -179,26 +183,30 @@ class TestCompanyPatch:
             ],
             with_taxinfo=[TaxInfoFactory(), TaxInfoFactory(), TaxInfoFactory()],
         )
-        serialized_old_company = dict(CompanySerializer(company).data)
+        serialized_old_company = company.to_dict()
 
         expected_identity_files_logs = [
             (
                 "IdentityFile",
                 "removed",
                 id_file.pid,
-                {"old": None, "new": None},
+                {"old": id_file.to_dict(), "new": None},
             )
             for id_file in old_director.identity_files.order_by("pid").all()
         ]
-        expected_director_taxinfo_removal_logs = [
+        expected_taxinfo_removal_logs = [
             (
                 "TaxInfo",
                 "removed",
                 taxinfo.pid,
-                {"old": None, "new": None},
+                {"old": taxinfo.to_dict(), "new": None},
             )
-            for taxinfo in old_director.taxinfo.order_by("pid").all()
+            for taxinfo in sorted(
+                [*old_director.taxinfo.all(), *company.taxinfo.all()],
+                key=lambda x: x.pid,
+            )
         ]
+        serialized_old_director = old_director.to_dict()
 
         url = reverse("company-detail", kwargs={"pid": company.pid})
         payload = {
@@ -224,25 +232,32 @@ class TestCompanyPatch:
             .values_list("object_type", "change_type", "object_pid", "changes")
             .all()
         )
-
         assert logs == [
             (
                 "Company",
                 "updated",
                 company.pid,
-                {"old": serialized_old_company, "new": CompanySerializer(company).data},
+                {"old": serialized_old_company, "new": company.to_dict()},
             ),
             (
                 "Director",
                 "added",
                 new_director.pid,
-                {"old": None, "new": dict(DirectorSerializer(new_director).data)},
+                {
+                    "old": None,
+                    "new": {
+                        **payload["directors"][0],
+                        "pid": new_director.pid,
+                        "taxinfo": [],
+                        "identity_files": [],
+                    },
+                },
             ),
             (
                 "Director",
                 "removed",
                 old_director.pid,
-                {"old": None, "new": None},
+                {"old": serialized_old_director, "new": None},
             ),
             *expected_identity_files_logs,
             (
@@ -258,5 +273,5 @@ class TestCompanyPatch:
                     "old": None,
                 },
             ),
-            *expected_director_taxinfo_removal_logs,
+            *expected_taxinfo_removal_logs,
         ]

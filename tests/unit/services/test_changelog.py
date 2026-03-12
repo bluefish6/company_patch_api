@@ -1,7 +1,7 @@
 import pytest
 
-from task2_api.models import ChangeLog
-from task2_api.services.changelog import ChangeType, create_changelog
+from task2_api.models import ChangeLog, ChangeType
+from task2_api.services.changelog_svc import create_changelog
 from tests.factories import CompanyFactory, DirectorFactory
 
 

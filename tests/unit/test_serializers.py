@@ -10,9 +10,6 @@ from task2_api.models import (
 from task2_api.serializers import (
     CompanySerializer,
     DirectorSerializer,
-    IdentityFileSerializer,
-    ShareholderSerializer,
-    TaxInfoSerializer,
 )
 from tests.factories import CompanyFactory, DirectorFactory, IdentityFileFactory
 
@@ -21,8 +18,6 @@ pids = [
     "2345678901234567",
     "3456789012345678",
     "4567890123456789",
-    "5678901234567890",
-    "6789012345678901",
 ]
 
 
@@ -101,13 +96,13 @@ class TestCompanyPatch:
                 "Company",
                 "updated",
                 company.pid,
-                {"old": old_company_serialized, "new": CompanySerializer(company).data},
+                {"old": old_company_serialized, "new": company.to_dict()},
             ),
             (
                 "Director",
                 "added",
                 new_director.pid,
-                {"old": None, "new": DirectorSerializer(new_director).data},
+                {"old": None, "new": new_director.to_dict()},
             ),
             (
                 "Director",
@@ -115,50 +110,50 @@ class TestCompanyPatch:
                 director1.pid,
                 {
                     "old": director1_before_changes_serialized,
-                    "new": DirectorSerializer(director1).data,
+                    "new": director1.to_dict(),
                 },
             ),
             (
                 "IdentityFile",
                 "added",
                 new_id_files[0].pid,
-                {"old": None, "new": IdentityFileSerializer(new_id_files[0]).data},
+                {"old": None, "new": new_id_files[0].to_dict()},
             ),
             (
                 "IdentityFile",
                 "added",
                 new_id_files[1].pid,
-                {"old": None, "new": IdentityFileSerializer(new_id_files[1]).data},
+                {"old": None, "new": new_id_files[1].to_dict()},
             ),
             (
                 "IdentityFile",
                 "added",
                 new_id_files[2].pid,
-                {"old": None, "new": IdentityFileSerializer(new_id_files[2]).data},
+                {"old": None, "new": new_id_files[2].to_dict()},
             ),
             (
                 "IdentityFile",
                 "removed",
                 identity_file1.pid,
-                {"old": None, "new": None},
+                {"old": {"pid": identity_file1.pid}, "new": None},
             ),
             (
                 "Shareholder",
                 "added",
                 new_shareholder.pid,
-                {"old": None, "new": ShareholderSerializer(new_shareholder).data},
+                {"old": None, "new": new_shareholder.to_dict()},
             ),
             (
                 "TaxInfo",
                 "added",
                 new_taxinfos[0].pid,
-                {"old": None, "new": TaxInfoSerializer(new_taxinfos[0]).data},
+                {"old": None, "new": new_taxinfos[0].to_dict()},
             ),
             (
                 "TaxInfo",
                 "added",
                 new_taxinfos[1].pid,
-                {"old": None, "new": TaxInfoSerializer(new_taxinfos[1]).data},
+                {"old": None, "new": new_taxinfos[1].to_dict()},
             ),
         ]
 

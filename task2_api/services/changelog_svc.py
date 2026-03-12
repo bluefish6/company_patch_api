@@ -1,13 +1,6 @@
-from enum import StrEnum
 from typing import cast
 
-from task2_api.models import ChangeLog, PIDMixin
-
-
-class ChangeType(StrEnum):
-    ADDED = "added"
-    UPDATED = "updated"
-    REMOVED = "removed"
+from task2_api.models import ChangeLog, ChangeType, PIDMixin
 
 
 def create_changelog(
